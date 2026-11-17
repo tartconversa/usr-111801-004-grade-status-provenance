@@ -49,6 +49,46 @@ CREATE TABLE IF NOT EXISTS audit (
     id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, actor TEXT NOT NULL,
     action TEXT NOT NULL, subject TEXT NOT NULL, details TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS spots (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL,
+    jurisdiction TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS spot_jurisdiction_moves (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, spot_id TEXT NOT NULL REFERENCES spots(id),
+    from_jurisdiction TEXT NOT NULL, to_jurisdiction TEXT NOT NULL,
+    effective_at TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
+    UNIQUE(spot_id,effective_at)
+);
+CREATE TABLE IF NOT EXISTS rating_documents (
+    id TEXT PRIMARY KEY, spot_id TEXT NOT NULL REFERENCES spots(id),
+    doc_type TEXT NOT NULL, issuer TEXT NOT NULL, jurisdiction TEXT NOT NULL,
+    issued_at TEXT NOT NULL, effective_at TEXT NOT NULL,
+    target_level TEXT, source_id TEXT NOT NULL REFERENCES sources(id),
+    asset_id TEXT NOT NULL REFERENCES assets(id), digest TEXT NOT NULL,
+    corrects_document_id TEXT REFERENCES rating_documents(id),
+    governing INTEGER NOT NULL DEFAULT 1, received_at TEXT NOT NULL,
+    received_seq INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(spot_id,digest)
+);
+CREATE TABLE IF NOT EXISTS rating_decisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, spot_id TEXT NOT NULL REFERENCES spots(id),
+    document_id TEXT NOT NULL UNIQUE REFERENCES rating_documents(id),
+    kind TEXT NOT NULL, status TEXT NOT NULL,
+    level TEXT, issued_at TEXT NOT NULL, effective_at TEXT NOT NULL,
+    supersedes_id INTEGER REFERENCES rating_decisions(id),
+    sequence INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS rating_publications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, document_id TEXT NOT NULL REFERENCES rating_documents(id),
+    channel TEXT NOT NULL, published_at TEXT NOT NULL,
+    UNIQUE(document_id,channel)
+);
+CREATE TABLE IF NOT EXISTS rating_conflicts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, spot_id TEXT NOT NULL REFERENCES spots(id),
+    reason TEXT NOT NULL, document_id TEXT NOT NULL REFERENCES rating_documents(id),
+    other_document_id TEXT REFERENCES rating_documents(id),
+    active INTEGER NOT NULL DEFAULT 1, opened_at TEXT NOT NULL, resolved_at TEXT
+);
 """
 
 
